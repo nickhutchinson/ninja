@@ -762,16 +762,16 @@ TEST_F(BuildTest, DepFileOK) {
   int orig_edges = state_.edges_.size();
   ASSERT_NO_FATAL_FAILURE(AssertParse(&state_,
 "rule cc\n  command = cc $in\n  depfile = $out.d\n"
-"build foo.o: cc foo.c\n"));
+"build foo$ foo.o: cc foo$ foo.c\n"));
   Edge* edge = state_.edges_.back();
 
-  fs_.Create("foo.c", "");
+  fs_.Create("foo foo.c", "");
   GetNode("bar.h")->MarkDirty();  // Mark bar.h as missing.
-  fs_.Create("foo.o.d", "foo.o: blah.h bar.h\n");
-  EXPECT_TRUE(builder_.AddTarget("foo.o", &err));
+  fs_.Create("foo foo.o.d", "foo\\ foo.o: blah.h bar.h\n");
+  EXPECT_TRUE(builder_.AddTarget("foo foo.o", &err));
   ASSERT_EQ("", err);
   ASSERT_EQ(1u, fs_.files_read_.size());
-  EXPECT_EQ("foo.o.d", fs_.files_read_[0]);
+  EXPECT_EQ("foo foo.o.d", fs_.files_read_[0]);
 
   // Expect three new edges: one generating foo.o, and two more from
   // loading the depfile.
@@ -780,7 +780,7 @@ TEST_F(BuildTest, DepFileOK) {
   ASSERT_EQ(3u, edge->inputs_.size());
 
   // Expect the command line we generate to only use the original input.
-  ASSERT_EQ("cc foo.c", edge->EvaluateCommand());
+  ASSERT_EQ("cc \"foo foo.c\"", edge->EvaluateCommand());
 }
 
 TEST_F(BuildTest, DepFileParseError) {

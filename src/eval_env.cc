@@ -34,8 +34,19 @@ string BindingEnv::LookupWithFallback(const string& var,
   if (i != bindings_.end())
     return i->second;
 
-  if (eval)
-    return eval->Evaluate(env);
+  if (eval) {
+    struct DepfileEvaluationPolicy : EvalString::EvaluationPolicy {
+      void Evaluate(Env* env, const string& variable, string* result,
+                    bool* was_handled) const {
+        if (variable == "out") {
+          result->append(env->LookupVariable("out_literal"));
+          *was_handled = true;
+        }
+      }
+    };
+    DepfileEvaluationPolicy policy;
+    return eval->Evaluate(env, var == "depfile" ? &policy : NULL);
+  }
 
   if (parent_)
     return parent_->LookupVariable(var);
@@ -43,13 +54,18 @@ string BindingEnv::LookupWithFallback(const string& var,
   return "";
 }
 
-string EvalString::Evaluate(Env* env) const {
+string EvalString::Evaluate(Env* env,
+                            EvaluationPolicy* policy /*=NULL*/) const {
   string result;
   for (TokenList::const_iterator i = parsed_.begin(); i != parsed_.end(); ++i) {
-    if (i->second == RAW)
+    if (i->second == RAW) {
       result.append(i->first);
-    else
-      result.append(env->LookupVariable(i->first));
+    } else {
+      bool handled = false;
+      if (policy) policy->Evaluate(env, i->first, &result, &handled);
+      if (!handled)
+        result.append(env->LookupVariable(i->first));
+    }
   }
   return result;
 }

@@ -238,6 +238,9 @@ string EdgeEnv::LookupVariable(const string& var) {
     return MakePathList(edge_->outputs_.begin(),
                         edge_->outputs_.end(),
                         ' ');
+  } else if (var == "out_literal") {
+    return (edge_->outputs_.size() == 1) ? edge_->outputs_.front()->path()
+                                         : string();
   }
 
   // See notes on BindingEnv::LookupWithFallback.

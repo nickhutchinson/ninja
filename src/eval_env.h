@@ -57,7 +57,12 @@ private:
 /// A tokenized string that contains variable references.
 /// Can be evaluated relative to an Env.
 struct EvalString {
-  string Evaluate(Env* env) const;
+  struct EvaluationPolicy {
+    virtual void Evaluate(Env* env, const string& variable, string* result,
+                          bool* handled) const = 0;
+  };
+
+  string Evaluate(Env* env, EvaluationPolicy* policy = NULL) const;
 
   void Clear() { parsed_.clear(); }
   bool empty() const { return parsed_.empty(); }
